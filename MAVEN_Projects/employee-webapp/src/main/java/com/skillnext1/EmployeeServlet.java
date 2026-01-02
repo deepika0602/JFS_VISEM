@@ -6,7 +6,6 @@ import com.skillnext1.Employee;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.IOException;
-
 public class EmployeeServlet extends HttpServlet {
 	 @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)

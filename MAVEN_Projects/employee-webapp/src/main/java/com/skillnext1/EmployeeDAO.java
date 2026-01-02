@@ -7,7 +7,6 @@ import java.sql.PreparedStatement;
 public class EmployeeDAO {
 
     public static void save(Employee emp) {
-
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
