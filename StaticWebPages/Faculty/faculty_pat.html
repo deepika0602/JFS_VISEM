@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faculty Timetable Search</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: lightblue;
+        }
+        .title {
+            font-size: 22px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Upload CSV File</h2>
+<input type="file" id="csvFile" accept=".csv">
+
+<br><br>
+
+<h2>Search Timetable by Faculty Name</h2>
+<input type="text" id="facultyInput" placeholder="Enter Faculty Name">
+<button onclick="showFaculty()">Search</button>
+
+<div id="tables"></div>
+
+<script>
+let facultyTimetable = {};
+let duplicateEntries = {};
+
+document.getElementById("csvFile").addEventListener("change", function () {
+    Papa.parse(this.files[0], {
+        header: true,
+        skipEmptyLines: true,
+        complete: function (result) {
+            document.getElementById("tables").innerHTML = ""; 
+            buildFacultyData(result.data);
+        }
+    });
+});
+
+/* ---------------- PROCESS CSV ---------------- */
+function buildFacultyData(data) {
+    facultyTimetable = {};
+    duplicateEntries = {};
+
+    data.forEach(row => {
+        const faculty = row["FACULTY"];
+        const day = row["DAY"];
+        const session = row["SESSION"]; 
+        const course = row["COURSE"];
+        const room = row["ROOM"];
+
+        if (!faculty || !day || !session) return;
+
+        const entry = `${course}<br>Room: ${room}<br>Faculty: ${faculty}`;
+
+        /* Duplicate detection */
+        const key = `${faculty}_${day}_${session}`;
+        if (!duplicateEntries[key]) duplicateEntries[key] = [];
+        duplicateEntries[key].push(entry);
+
+        /* Build faculty timetable */
+        if (!facultyTimetable[faculty]) facultyTimetable[faculty] = {};
+        if (!facultyTimetable[faculty][day]) facultyTimetable[faculty][day] = { FN: "", AN: "" };
+
+        facultyTimetable[faculty][day][session] = entry;
+    });
+
+    highlightDuplicates();
+}
+
+/* ---------------- MARK DUPLICATES ---------------- */
+function highlightDuplicates() {
+    for (const key in duplicateEntries) {
+        if (duplicateEntries[key].length > 1) {
+            const [faculty, day, session] = key.split("_");
+
+            if (facultyTimetable[faculty]?.[day]?.[session]) {
+                facultyTimetable[faculty][day][session] =
+                    `<span style='color:red; font-weight:bold;'>${facultyTimetable[faculty][day][session]}<br>(Duplicate)</span>`;
+            }
+        }
+    }
+}
+
+/* ---------------- SHOW ONLY FACULTY TIMETABLE ---------------- */
+function showFaculty() {
+    const facultyName = document.getElementById("facultyInput").value.trim();
+    const container = document.getElementById("tables");
+    container.innerHTML = "";
+
+    if (!facultyName) {
+        container.innerHTML = "<p>Please enter a faculty name.</p>";
+        return;
+    }
+
+    if (!facultyTimetable[facultyName]) {
+        container.innerHTML = "<p>No timetable found for this faculty.</p>";
+        return;
+    }
+
+    buildFacultyTable(facultyName, facultyTimetable[facultyName]);
+}
+
+/* ---------------- BUILD TABLE ---------------- */
+function buildFacultyTable(faculty, data) {
+    const container = document.getElementById("tables");
+
+    const title = document.createElement("div");
+    title.className = "title";
+    title.innerHTML = `Faculty: ${faculty}`;
+    container.appendChild(title);
+
+    const table = document.createElement("table");
+    const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+    let html = `
+        <tr>
+            <th>DAY</th>
+            <th>FN</th>
+            <th rowspan=7>L<br>U<br>N<br>C<br>H</th>
+            <th>AN</th>
+        </tr>
+    `;
+
+    days.forEach(day => {
+        const fn = data[day]?.FN || "";
+        const an = data[day]?.AN || "";
+
+        html += `
+            <tr>
+                <td>${day}</td>
+                <td>${fn}</td>
+                <td>${an}</td>
+            </tr>
+        `;
+    });
+
+    table.innerHTML = html;
+    container.appendChild(table);
+}
+</script>
+
+</body>
+</html>
